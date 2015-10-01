@@ -14,6 +14,7 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
 from api import models
+from api.services import PRESERVED_KEYS
 
 
 PROCTYPE_MATCH = re.compile(r'^(?P<type>[a-z]+)')
@@ -184,6 +185,8 @@ class ConfigSerializer(ModelSerializer):
 
     def validate_values(self, value):
         for k, v in value.viewitems():
+            if all(map(lambda x: k.startswith(x), PRESERVED_KEYS)):
+                raise serializers.ValidationError("Key {} cannot be set.".format(k))
             if not re.match(CONFIGKEY_MATCH, k):
                 raise serializers.ValidationError(
                     "Config keys must start with a letter or underscore and "

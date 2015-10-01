@@ -1,0 +1,89 @@
+#!/usr/bin/env python
+import logging
+import os
+import etcd
+import psycopg2
+import sys
+
+from collections import defaultdict
+
+logger = logging.getLogger('dbsync')
+logger.addHandler(logging.StreamHandler(sys.stdout))
+logger.setLevel(logging.DEBUG)
+
+env = os.environ
+ETCD_HOST = env.get('ETCD_HOST', env.get('HOST', '127.0.0.1'))
+ETCD_PORT = env.get('ETCD_PORT', 4001)
+DB_KEY = '/deis/database/'
+
+
+client = etcd.Client(host=ETCD_HOST, port=ETCD_PORT)
+services = client.read('/deis/config/', dir=True, recursive=False)
+
+apps = defaultdict(dict)
+appdbs = []
+appusers = []
+
+for service in services.children:
+    app = service.key.split("/")[-1]
+    for conf in client.read(service.key, dir=True, recursive=True).children:
+        key = conf.key.split("/")[-1].upper()
+        if not key.startswith('PG_'):
+            continue
+        apps[app][key.replace('PG_DATABASE_', '').lower()] = conf.value
+        if key == 'PG_DATABASE_USER':
+            appusers.append(conf.value)
+        if key == 'PG_DATABASE_NAME':
+            appdbs.append(conf.value)
+
+logger.info("Found %d app dbs" % len(appdbs))
+logger.info("Found %d app users" % len(appusers))
+
+DB_HOST = client.get(DB_KEY + 'host').value
+DB_USER = client.get(DB_KEY + 'adminUser').value
+DB_PASSWORD = client.get(DB_KEY + 'adminPass').value
+DB_PORT = client.get(DB_KEY + 'port').value
+
+db = psycopg2.connect(**{
+    'host': DB_HOST,
+    'user': DB_USER,
+    'password': DB_PASSWORD,
+    'port': DB_PORT
+})
+db.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+
+cur = db.cursor()
+cur.execute('SELECT datname FROM pg_database WHERE datistemplate = false');
+dbs = filter(lambda x:x.startswith('appdb_'), map(lambda x: x[0], cur.fetchall()))
+logger.info("Found %d dbs" % len(dbs))
+cur.execute('SELECT rolname FROM pg_roles');
+users = filter(lambda x:x.startswith('user_'), map(lambda x: x[0], cur.fetchall()))
+logger.info("Found %d users" % len(users))
+
+for app, db in apps.iteritems():
+    try:
+        user = db['user']
+        name = db['name']
+        password = db['password'].replace("'", "''")
+        port = db['port']
+        host = db['host']
+    except KeyError, e:
+        logger.error("Cannot resolve full db info %r", db)
+        continue
+
+    if not name in dbs:
+        logger.info("Create user %r", user)
+        cur.execute("CREATE USER {} WITH PASSWORD '{}'".format(user, password))
+        logger.info("Create db %r", name)
+        cur.execute("CREATE DATABASE {}".format(db['name']))
+        cur.execute("GRANT ALL PRIVILEGES ON DATABASE {} to {}".format(name, user))
+
+for dbname in dbs:
+    if not dbname in appdbs:
+        logger.info("Drop db %r", dbname)
+        cur.execute("DROP DATABASE IF EXISTS {}".format(dbname))
+
+for user in users:
+    if not user in appusers:
+        logger.info("Drop user %r", user)
+        cur.execute("DROP role IF EXISTS {}".format(user))

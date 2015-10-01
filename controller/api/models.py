@@ -20,7 +20,7 @@ from django.core.exceptions import ValidationError, SuspiciousOperation
 from django.db import models
 from django.db.models import Count
 from django.db.models import Max
-from django.db.models.signals import post_delete, post_save
+from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 from django.utils.encoding import python_2_unicode_compatible
 from docker.utils import utils as dockerutils
@@ -32,6 +32,7 @@ from rest_framework.authtoken.models import Token
 from api import fields, utils, exceptions
 from registry import publish_release
 from utils import dict_diff, fingerprint
+from api.services import _fill_config
 
 
 logger = logging.getLogger(__name__)
@@ -1233,3 +1234,7 @@ if _etcd_client:
     post_delete.connect(_etcd_purge_cert, sender=Certificate, dispatch_uid='api.models')
     post_save.connect(_etcd_publish_config, sender=Config, dispatch_uid='api.models')
     post_delete.connect(_etcd_purge_config, sender=Config, dispatch_uid='api.models')
+
+    def _etcd_fill_config(**kwargs):
+        return _fill_config(_etcd_client, **kwargs)
+    pre_save.connect(_etcd_fill_config, sender=Config, dispatch_uid='api.models')

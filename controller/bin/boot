@@ -106,6 +106,10 @@ trap on_exit TERM
 # spawn confd in the background to update services based on etcd changes
 confd -node "$ETCD" --confdir /app --log-level error --interval 5 &
 
+# spawn exec-watch in the background
+/app/bin/dbsync
+etcdctl -C $HOST:4001 exec-watch --recursive /deis/config -- /app/bin/dbsync &
+
 echo deis-controller running...
 
 # publish the service to etcd using the injected EXTERNAL_PORT
