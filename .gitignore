@@ -15,6 +15,7 @@ lib
 lib64
 
 # Deis' config file
+controller/deis/gconf.py
 controller/deis/local_settings.py
 controller/.secret_key
 
