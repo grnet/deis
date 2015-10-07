@@ -13,7 +13,7 @@ logger.setLevel(logging.DEBUG)
 
 env = os.environ
 ETCD_HOST = env.get('ETCD_HOST', env.get('HOST', '127.0.0.1'))
-ETCD_PORT = env.get('ETCD_PORT', 4001)
+ETCD_PORT = int(env.get('ETCD_PORT', 4001))
 DB_KEY = '/deis/database/'
 
 
