@@ -1,0 +1,6 @@
+.cache
+inventory*.yml
+conf*.yml
+roles/defunctzombie.coreos-bootstrap
+playbooks/*.log
+ssl/*.pem

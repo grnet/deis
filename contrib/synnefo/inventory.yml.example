@@ -1,0 +1,88 @@
+coreos: &coreos
+    vars: &coreos_vars
+        ansible_ssh_user: core
+
+    users: ['core']
+    image: b9236d02-0904-4d00-8967-3279f0053d18
+
+
+control: &control
+    <<: *coreos
+    vars:
+        <<: *coreos_vars
+        fleet_tags: "controlPlane=true,routerMesh=true"
+    groups: ['nodes', 'controlplane', 'dataplane']
+
+
+data: &data
+    <<: *coreos
+    vars:
+        <<: *coreos_vars
+        fleet_tags: dataPlane=true
+    groups: ['nodes', 'dataplane']
+
+
+ssh_key: &ssh_key './ifalos_key.pub'
+
+
+control_machine: &control_machine
+    <<: *control
+    keys: [*ssh_key]
+    flavor:
+        cpu: 8
+        ram: 8192
+        disk: 60
+        disk_type: drbd
+    floating_ips: [auto]
+
+data_machine: &data_machine
+    <<: *data
+    keys: [*ssh_key]
+    flavor:
+        cpu: 8
+        ram: 8192
+        disk: 40
+        disk_type: drbd
+    floating_ips: [auto]
+
+group_vars:
+    nodes:
+      ansible_python_interpreter: /home/core/bin/python
+
+provision:
+    networks:
+        deis:
+            type: MAC_FILTERED
+            cidr: 10.12.50.0/24
+
+    machines:
+        deis-master-node1:
+            <<: *control_machine
+            floating_ips: [auto]
+            networks:
+                deis:
+                    ip: 10.12.50.1
+        deis-master-node2:
+            <<: *control_machine
+            floating_ips: [auto]
+            networks:
+                deis:
+                    ip: 10.12.50.2
+        deis-master-node3:
+            <<: *control_machine
+            floating_ips: [auto]
+            networks:
+                deis:
+                    ip: 10.12.50.3
+        deis-master-node4:
+            <<: *control_machine
+            floating_ips: [auto]
+            networks:
+                deis:
+                    ip: 10.12.50.4
+        deis-master-node5:
+            <<: *control_machine
+            floating_ips: [auto]
+            networks:
+                deis:
+                    ip: 10.12.50.5

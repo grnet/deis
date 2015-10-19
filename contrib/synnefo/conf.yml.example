@@ -1,0 +1,28 @@
+deis_domain: ifalos.mydomain.com
+deis_nodes_domain: ifalos-nodes.mydomain.com
+deis_tunnel: ifalos.mydomain.com
+deis_key: ../ifalos_key
+deis_etcd_host: 10.12.21.1
+deis_log_backend: false
+deis_router_firewall: true
+deis_log_backend: false
+
+# https://docs.ansible.com/ansible/faq.html#how-do-i-generate-crypted-passwords-for-the-user-module
+deis_core_password: <password>
+
+deis_nodes_firewall:
+  allow:
+    - 10.12.21.1
+    - 10.12.21.2
+    - 10.12.21.3
+    - 10.12.21.4
+    - 10.12.21.5
+    - 10.12.21.6
+    - 10.12.21.7
+    - 10.12.21.8
+    - 10.12.21.9
+    - 10.12.21.10
+    - <your local machine ip>
+
+# curl -s -w '\n' https://discovery.etcd.io/new?size=3
+etcd_discovery_url: <discovery-url>

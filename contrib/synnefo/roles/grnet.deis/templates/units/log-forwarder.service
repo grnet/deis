@@ -1,0 +1,13 @@
+[Unit]
+Description=Log forwarder
+
+[Service]
+Environment="LOG_HOST={{ deis_log_backend.split(":")[0] }}"
+Environment="LOG_PORT={{ deis_log_backend.split(":")[1] }}"
+ExecStart=/bin/sh -c "journalctl -o short -f | ncat --ssl ${LOG_HOST} ${LOG_PORT}"
+
+[Install]
+WantedBy=multi-user.target
+
+[X-Fleet]
+Global=true

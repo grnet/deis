@@ -1,0 +1,174 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# (c) 2012, Mark Theunissen <mark.theunissen@gmail.com>
+# Sponsored by Four Kitchens http://fourkitchens.com.
+#
+# This file is part of Ansible
+#
+# Ansible is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Ansible is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
+
+DOCUMENTATION = '''
+---
+module: deis_etcd
+short_description: Read and write values from etcd server.
+description:
+   - Read and write values from etcd server.
+version_added: "0.1"
+options:
+  state:
+    description:
+      - state (either present or absent).
+    required: true
+  target_host:
+    description:
+      - IP address or hostname of the server to read data from
+    required: true
+    default: null
+  target_port:
+    description:
+      - Port of the server to read data from
+    required: false
+    default: 4001
+  key:
+    description:
+      - The etcd key (aka path) to a variable.
+    required: true
+    default: null
+  value:
+    description:
+      - The value of the target etcd item.
+    required: true
+    default: null
+
+  ssl_cert:
+    description:
+      - The ssl_cert file
+    required: false
+    default: null
+  ssl_key:
+    description:
+      - The ssl_cert file
+    required: false
+    default: null
+
+notes:
+   - Requires the requests and etcd-py Python packages on the remote host.
+     For Ubuntu, install requests with pip install requests. (See M(apt).)
+requirements: [ ]
+author: Juha Suomalainen
+'''
+
+EXAMPLES = '''
+# Fetch value for key /test from etcd server on 192.168.1.111
+- etcd: ip=192.168.1.111 state=present
+'''
+
+try:
+    import etcd
+    etcd_found = True
+except ImportError:
+    etcd_found = False
+
+try:
+    import requests
+    requests_found = True
+except ImportError:
+    requests_found = False
+
+NOT_SET = None
+
+
+def main():
+    module = AnsibleModule(argument_spec=dict(
+        state=dict(required=True, choices=['present', 'absent']),
+        target_host=dict(required=False, default='127.0.0.1'),
+        target_port=dict(default=4001),
+        key=dict(required=False),
+        value=dict(required=False, default=None),
+        ssl_cert=dict(required=False, default=None),
+        ssl_key=dict(required=False, default=None)))
+
+    if not etcd_found:
+        module.fail_json(msg="the python etcd module is required")
+
+    if not requests_found:
+        module.fail_json(msg="the python requests module is required")
+
+    state = module.params['state']
+    target_host = module.params['target_host']
+    target_port = module.params['target_port']
+
+    key = module.params['key']
+    value = module.params['value']
+    ssl_cert = module.params['ssl_cert']
+    ssl_key = module.params['ssl_key']
+
+    if state == 'present' and not value:
+        module.fail_json(msg='Value is required with state="present".')
+
+    kwargs = {'host': target_host,
+              'port': target_port}
+    if ssl_cert:
+        kwargs['cert'] = ssl_cert
+    if ssl_key:
+        kwargs['cert'] = (ssl_cert, ssl_key)
+
+    e = etcd.Client(**kwargs)
+
+    try:
+        prev_value = e.get(key)
+    except requests.ConnectionError:
+        module.fail_json(msg="Can not connect to target.")
+    except etcd.EtcdKeyNotFound as err:
+        prev_value = NOT_SET
+    except etcd.EtcdError as err:
+        err_code, err_msg = err
+        module.fail_json(msg="Etcd error: %s" % err_msg)
+        return
+
+    if key and not value:
+        result = False
+        if prev_value is not NOT_SET and state == 'present':
+            result = True
+        if prev_value is NOT_SET and state == 'absent':
+            result = True
+        module.exit_json(result=result)
+
+    changed = False
+    if state == 'present':
+        if prev_value is not NOT_SET and prev_value.dir:
+            module.fail_json(msg="Key is a directory %r")
+
+        if prev_value is NOT_SET or (prev_value and (prev_value.value != value)):
+            try:
+                e.set(key, value)
+                changed = True
+            except requests.ConnectionError:
+                module.fail_json(msg="Can not connect to target.")
+
+    elif state == 'absent':
+        if prev_value is not NOT_SET:
+            try:
+                e.delete(key)
+                changed = True
+            except requests.ConnectionError:
+                module.fail_json(msg="Can not connect to target.")
+
+    value = prev_value.value if prev_value is not NOT_SET else None
+    module.exit_json(changed=changed, prev_value=value)
+
+# this is magic, see lib/ansible/module_common.py
+#<<INCLUDE_ANSIBLE_MODULE_COMMON>>
+main()

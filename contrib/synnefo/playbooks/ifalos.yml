@@ -1,0 +1,9 @@
+- hosts: nodes
+  roles:
+      - grnet.deis.common
+      - grnet.deis
+
+- hosts: controlplane
+  roles:
+      - grnet.deis.common
+      - grnet.ifalos.control

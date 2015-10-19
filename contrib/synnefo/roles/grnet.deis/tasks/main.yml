@@ -1,0 +1,304 @@
+- include_vars: "../../../../{{ lookup('env', 'CONF') or 'conf-dev.yml' }}"
+  tags: [deis-pre, deis-setup, deis-conf]
+
+- debug: var="Install ifalos @ {{ deis_domain }}"
+  run_once: true
+
+- name: "[pre] Set core user password"
+  sudo: true
+  user: name=core state=present password="{{ deis_core_password }}"
+  tags: deis-pre
+
+- name: "[pre] Check CoreOS version"
+  shell: grep '{{ coreos_version }}' /etc/os-release
+  register: coreos_version_grep
+  ignore_errors: true
+  tags: deis-pre
+
+- name: "[pre] Update CoreOS"
+  shell: update_engine_client -update
+  sudo: true
+  when: deis_allow_reboot and not coreos_version_grep.stdout
+  tags: deis-pre
+    
+- name: "[pre] Fix machineid"
+  sudo: true
+  template: 
+    src: machine-id.j2 
+    dest: "/etc/machine-id"
+    owner: root
+    mode: a+r,a-w
+  register: machineid
+  when: deis_allow_reboot
+  tags: deis-pre
+
+- name: "[pre] Reboot nodes"
+  sudo: true
+  shell: /bin/sh -c 'sleep 1 && reboot now' &
+  async: 1
+  poll: 0
+  when: deis_allow_reboot and (machineid.changed or not coreos_version_grep.stdout)
+  tags: deis-pre
+
+- local_action: wait_for host={{ inventory_hostname }} delay={{ deis_reboot_delay }} port=22
+  when: deis_allow_reboot and (machineid.changed or not coreos_version_grep.stdout)
+  tags: deis-pre
+
+- name: "[pre] Delay for a successful boot"
+  pause: seconds=45
+  when: deis_allow_reboot and deis_allow_upgrade and not coreos_version_grep.stdout
+
+- name: "[pre] Check CoreOS version"
+  shell: grep '{{ coreos_version }}' /etc/os-release
+  register: coreos_version_grep
+  failed_when: not coreos_version_grep.stdout
+  tags: deis-pre
+
+- name: "[pre] Check CoreOS version"
+  shell: grep '{{ coreos_version }}' /etc/os-release
+  when: deis_allow_reboot and deis_allow_upgrade and not coreos_version_grep.stdout
+  register: _coreos_version2
+  tags: deis-pre
+
+- stat: path={{ deis_userdata_tmpdir }}
+  register: userdata_tmpdir_exists
+  tags: deis-pre
+
+- stat: path={{ deis_userdata_dir }}
+  register: userdata_dir_exists
+  tags: deis-pre
+
+- name: "[pre] Prepare user_data tmp dir"
+  sudo: true
+  file: path={{ deis_userdata_tmpdir }} state=directory owner=root
+  when: not userdata_tmpdir_exists.stat.exists
+  tags: deis-pre
+
+- name: "[pre] Prepare user_data dir"
+  sudo: true
+  file: path={{ deis_userdata_dir }} state=directory owner=root
+  when: not userdata_dir_exists.stat.exists
+  tags: deis-pre
+
+- name: "[pre] Place CoreOS userdata file to tmpdir"
+  sudo: true
+  register: userdata
+  template: 
+    src: user_data.j2 
+    dest: "{{ deis_userdata_tmpdir }}/{{ deis_userdata_filename }}"
+    owner: root
+    mode: u+rw
+  tags: deis-pre
+
+- name: "[pre] Validate user_data"
+  shell: coreos-cloudinit -validate --from-file "{{ deis_userdata_tmpdir }}/{{ deis_userdata_filename }}"
+  sudo: true
+  ignore_errors: true
+  register: userdata_valid_cmd
+  when: userdata.changed
+  tags: deis-pre
+
+- set_fact: userdata_valid={{ userdata_valid_cmd|success }}
+  when: userdata.changed
+  tags: deis-pre
+
+- name: "[pre] Update user_data file"
+  command: sudo cp "{{ deis_userdata_tmpdir }}/{{ deis_userdata_filename }}" "{{ deis_userdata_dir }}/{{ deis_userdata_filename }}"
+  when: userdata.changed and userdata_valid and deis_allow_reboot
+  changed_when: deis_allow_reboot
+  register: coreos_updated
+  tags: deis-pre
+
+- name: "[pre] Reboot nodes"
+  sudo: true
+  shell: /bin/sh -c 'sleep 1 && reboot now' &
+  async: 1
+  poll: 0
+  when: deis_allow_reboot and coreos_updated.changed
+  tags: deis-pre
+
+- local_action: wait_for host={{ inventory_hostname }} delay={{ deis_reboot_delay }} port=22
+  when: coreos_updated.changed
+  tags: deis-pre
+
+- pip: name=python-etcd version=0.4.1 executable=/home/core/bin/pip
+  tags: deis-pre
+
+- pip: name=requests version=2.7.0 executable=/home/core/bin/pip
+  tags: deis-pre
+
+- local_action: wait_for host={{ inventory_hostname }} delay=3 port=4001
+  tags: deis-pre
+
+- set_fact: master_node="{{ groups.nodes.0 }}"
+  tags: [deis-conf, deis-setup]
+
+- name: "[setup] Set deis domain"
+  etcd: target_host={{ deis_etcd_host }} state=present key=/deis/platform/domain value="{{ deis_domain }}"
+  run_once: true
+  delegate_to: "{{master_node}}"
+  tags: deis-setup
+
+- name: "[setup] Set registration policy"
+  etcd: target_host={{ deis_etcd_host }} state=present key=/deis/controller/registrationMode value="{{ deis_registration_mode }}"
+  run_once: true
+  delegate_to: "{{master_node}}"
+  tags: deis-setup
+
+- name: "[setup] Set web ui enabled"
+  etcd: target_host={{ deis_etcd_host }} state=present key=/deis/controller/webEnabled value="{{ deis_enable_web_ui }}"
+  run_once: true
+  delegate_to: "{{master_node}}"
+  tags: deis-setup
+
+- name: "[setup] Set deis router firewall"
+  etcd: target_host={{ deis_etcd_host }} state=present key=/deis/router/firewall/enabled value="{{ deis_router_firewall }}"
+  run_once: true
+  delegate_to: "{{master_node}}"
+  tags: deis-setup
+
+- name: "[setup] Set placement options"
+  etcd: target_host={{ deis_etcd_host }} state=present key=/deis/platform/enablePlacementOptions value="{{ deis_placement_options }}"
+  run_once: true
+  delegate_to: "{{master_node}}"
+  tags: deis-setup
+
+- name: "[setup] Set deis controller image"
+  etcd: target_host={{ deis_etcd_host }} state=present key=/deis/controller/image value="{{ deis_controller_image }}"
+  run_once: true
+  delegate_to: "{{master_node}}"
+  tags: deis-setup
+
+- name: "[setup] Set deis controller scheduler"
+  etcd: target_host={{ deis_etcd_host }} state=present key=/deis/controller/schedulerModule value="{{ deis_controller_scheduler }}"
+  run_once: true
+  delegate_to: "{{master_node}}"
+  tags: deis-setup
+
+- name: "[setup] Set deis sshPrivateKey"
+  etcd: target_host={{ deis_etcd_host }} state=absent key=/deis/platform/sshPrivateKey
+  run_once: true
+  delegate_to: "{{master_node}}"
+  register: deiskey_set
+  tags: deis-setup
+
+- local_action: shell DEISCTL_TUNNEL={{ deis_tunnel }} deisctl config platform set sshPrivateKey="{{ deis_key }}"
+  run_once: true
+  when: deiskey_set.result
+  tags: deis-setup
+
+- name: "[setup] Set deis router certificates"
+  etcd: target_host={{ deis_etcd_host }} state=absent key=/deis/router/sslKey
+  run_once: true
+  delegate_to: "{{master_node}}"
+  register: deis_sslkey_notset
+  tags: deis-setup
+
+- local_action: shell DEISCTL_TUNNEL={{ deis_tunnel }} deisctl config router set sslKey="{{ deis_ssl_key }}" sslCert="{{ deis_ssl_cert }}"
+  run_once: true
+  when: deis_use_ssl and deis_sslkey_notset.result
+  tags: deis-setup
+
+- name: "[setup] Set deis router ssl mode"
+  etcd: target_host={{ deis_etcd_host }} state=present key=/deis/router/enforceHTTPS value="{{ deis_use_ssl }}"
+  run_once: true
+  delegate_to: "{{master_node}}"
+  tags: deis-setup
+
+- name: "[setup] Set deis log backend"
+  etcd: target_host={{ deis_etcd_host }} state=present key=/deis/logs/drain value="{{ deis_log_backend }}"
+  run_once: true
+  delegate_to: "{{master_node}}"
+  when: deis_log_drain
+  tags: deis-setup
+
+- local_action: shell DEISCTL_TUNNEL={{ deis_tunnel }} deisctl list | tail -n +2 | wc -c
+  register: deisctl_list
+  run_once: true
+  delegate_to: "{{master_node}}"
+  tags: deis-setup
+
+- set_fact: deis_installed="{{deisctl_list.stdout|int > 0}}"
+  tags: deis-setup
+
+- name: "[install] Install platform"
+  local_action: shell DEISCTL_TUNNEL={{ deis_tunnel }} deisctl install platform > install-platform.log
+  run_once: true
+  when: not deis_installed and deis_allow_install
+  delegate_to: "{{master_node}}"
+  tags: deis-setup
+
+- name: "[install] Install k8s"
+  local_action: shell DEISCTL_TUNNEL={{ deis_tunnel }} deisctl install k8s > install-k8s.log
+  run_once: true
+  when: not deis_installed and deis_allow_install
+  delegate_to: "{{master_node}}"
+  tags: deis-setup
+
+- name: "[conf] Prepare ifalos scripts dir"
+  file: path=/home/core/ifalos state=directory owner=core
+  tags: deis-setup
+
+- name: "[conf] Prepare ifalos units dir"
+  file: path=/home/core/ifalos/units state=directory owner=core
+  tags: deis-setup
+
+- name: "[conf] Update firewall script"
+  sudo: true
+  template: 
+    src: set-firewall.j2 
+    dest: "/home/core/ifalos/set-firewall.sh"
+    owner: root
+    mode: o+rwx,a+r
+  register: firewall
+  when: deis_installed
+  tags: deis-setup
+
+- name: "[conf] Place log forwarder service file"
+  sudo: true
+  register: logging_service_file
+  template: 
+    src: units/log-forwarder.service
+    dest: /home/core/ifalos/units/
+    owner: core
+    mode: u+rw
+  tags: deis-setup
+
+- shell: sudo fleetctl stop log-forwader; sudo fleetctl destroy log-forwarder
+  run_once: true
+  when: logging_service_file.changed
+  ignore_errors: true
+  tags: deis-setup
+
+- command: sudo fleetctl status log-forwarder
+  run_once: true
+  register: log_forwarder_loaded
+  ignore_errors: true
+  failed_when: '"does not exist" in log_forwarder_loaded.stderr'
+  tags: deis-setup
+
+- command: sudo fleetctl load /home/core/ifalos/units/log-forwarder
+  run_once: true
+  when: log_forwarder_loaded.failed
+  tags: deis-setup
+
+- pause: seconds=3
+  when: log_forwarder_loaded.failed
+  tags: deis-setup
+
+- shell: sudo fleetctl list-units | grep -e 'log-forwarder.*\sactive'
+  run_once: true
+  register: log_forwarder_active
+  ignore_errors: true
+  tags: deis-setup
+
+- command: sudo fleetctl start log-forwarder
+  run_once: true
+  when: not log_forwarder_active.stdout
+  tags: deis-setup
+
+- name: "[conf] Apply firewall rules"
+  sudo: true
+  shell: . /home/core/ifalos/set-firewall.sh
+  when: firewall.changed or deis_force_apply_firewall and deis_installed
+  tags: deis-setup

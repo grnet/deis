@@ -1,0 +1,23 @@
+deis_version: 1.11.1
+coreos_version: 766.4.0
+deis_userdata_tmpdir: /var/lib/coreos-install-tmp
+deis_userdata_dir: /var/lib/coreos-install
+deis_userdata_filename: user_data
+deis_force_apply_firewall: False
+deis_registration_mode: admin_only
+deis_enable_web_ui: true
+deis_placement_options: true
+deis_reboot_delay: 45
+deis_controller_image: vinilios/ifalos-controller
+deis_controller_scheduler: k8s
+deis_log_backend: false
+deis_log_drain: false
+
+deis_network_id: deis
+deis_allow_upgrade: False
+deis_allow_reboot: False
+deis_allow_install: False
+
+deis_use_ssl: "true"
+deis_ssl_key: ssl/deis.key.pem
+deis_ssl_cert: ssl/deis.chain.pem

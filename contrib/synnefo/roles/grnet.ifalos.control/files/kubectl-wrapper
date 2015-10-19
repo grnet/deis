@@ -1,0 +1,2 @@
+#!/bin/bash
+/home/core/bin/kubectl_ --server=`etcdctl get /deis/scheduler/k8s/master`:8080 $@
