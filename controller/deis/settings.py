@@ -143,6 +143,7 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.staticfiles',
     # Third-party apps
+    'longerusernameandemail',
     'django_auth_ldap',
     'guardian',
     'json_field',

@@ -12,8 +12,17 @@ from api import routers, views
 
 router = routers.ApiRouter()
 
+urlpatterns = patterns('')
+
+if settings.ASTAKOS_AUTH_URL:
+    urlpatterns += patterns(
+        '',
+        url(r'^auth/login/',
+            'deis.astakos.obtain_auth_token'),
+    )
+
 # Add the generated REST URLs and login/logout endpoint
-urlpatterns = patterns(
+urlpatterns += patterns(
     '',
     url(r'^', include(router.urls)),
     # application release components
@@ -101,3 +110,4 @@ urlpatterns = patterns(
     # list users
     url(r'^users/', views.UserView.as_view({'get': 'list'})),
 )
+

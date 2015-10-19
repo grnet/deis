@@ -70,3 +70,27 @@ GROUP_BASEDN = '{{ if exists "/deis/controller/auth/ldap/group/basedn" }}{{ getv
 GROUP_FILTER = '{{ if exists "/deis/controller/auth/ldap/group/filter" }}{{ getv "/deis/controller/auth/ldap/group/filter"}}{{ else }} {{ end }}'
 GROUP_TYPE = '{{ if exists "/deis/controller/auth/ldap/group/type" }}{{ getv "/deis/controller/auth/ldap/group/type"}}{{ else }} {{ end }}'
 {{ end }}
+
+
+ASTAKOS_AUTH_URL = None
+ASTAKOS_ACCESS_GROUPS = ['paas']
+
+{{ if exists "/deis/controller/auth/astakos" }}
+from deis.settings import REST_FRAMEWORK
+REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] = (
+        'deis.astakos_auth.TokenAuthentication',
+)
+AUTHENTICATION_BACKENDS = (
+    'deis.astakos.AstakosBackend',
+    "django_auth_ldap.backend.LDAPBackend",
+    "django.contrib.auth.backends.ModelBackend",
+    "guardian.backends.ObjectPermissionBackend"
+)
+ASTAKOS_AUTH_URL = '{{ getv "/deis/controller/auth/astakos" }}'
+{{if exists "/deis/controller/auth/astakosGroup"}}
+ASTAKOS_ACCESS_GROUPS = '{{ getv "/deis/controller/auth/astakosGroup" }}'.split(",")
+{{end}}
+{{ end }}
+
+import sys
+sys.stdout = sys.stderr

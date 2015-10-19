@@ -88,6 +88,7 @@ fi
 
 # run an idempotent database migration
 sudo -E -u deis ./manage.py syncdb --migrate --noinput
+sudo -E -u deis ./manage.py migrate longerusernameandemail --noinput
 
 # spawn a gunicorn server in the background
 sudo -E -u deis gunicorn -c deis/gconf.py deis.wsgi &
