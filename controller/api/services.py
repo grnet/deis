@@ -69,7 +69,7 @@ class PGService(Service):
     def setup(self):
         app_id = str(self.config.app.id)
         user = mkrandom(8, digits=False, punctuation=False)
-        password = mkrandom(32, punctunation=False)
+        password = mkrandom(32, punctuation=False)
         db = mkrandom(8, digits=False, punctuation=False).lower()
 
         user = "user_{}_{}".format(app_id, user).replace('-', '_').lower()
