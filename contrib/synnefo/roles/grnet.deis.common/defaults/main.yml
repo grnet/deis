@@ -21,3 +21,6 @@ deis_allow_install: False
 deis_use_ssl: "true"
 deis_ssl_key: ssl/deis.key.pem
 deis_ssl_cert: ssl/deis.chain.pem
+
+deis_astakos_auth_url: ""
+deis_astakos_auth_access_groups: ""

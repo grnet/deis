@@ -145,6 +145,18 @@
   delegate_to: "{{master_node}}"
   tags: deis-setup
 
+- name: "[setup] Set astakos auth"
+  etcd: target_host={{ deis_etcd_host }} state=present key=/deis/controller/auth/astakos value="{{ deis_astakos_auth_url }}"
+  run_once: true
+  delegate_to: "{{master_node}}"
+  tags: deis-setup
+
+- name: "[setup] Set astakos auth access groups"
+  etcd: target_host={{ deis_etcd_host }} state=present key=/deis/controller/auth/astakosGroups value="{{ deis_astakos_auth_access_groups }}"
+  run_once: true
+  delegate_to: "{{master_node}}"
+  tags: deis-setup
+
 - name: "[setup] Set web ui enabled"
   etcd: target_host={{ deis_etcd_host }} state=present key=/deis/controller/webEnabled value="{{ deis_enable_web_ui }}"
   run_once: true

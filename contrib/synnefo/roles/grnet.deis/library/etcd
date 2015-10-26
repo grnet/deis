@@ -97,6 +97,7 @@ def main():
         target_port=dict(default=4001),
         key=dict(required=False),
         value=dict(required=False, default=None),
+        allow_empty=dict(required=False, default=True),
         ssl_cert=dict(required=False, default=None),
         ssl_key=dict(required=False, default=None)))
 
@@ -115,7 +116,7 @@ def main():
     ssl_cert = module.params['ssl_cert']
     ssl_key = module.params['ssl_key']
 
-    if state == 'present' and not value:
+    if state == 'present' and value is None and allow_empty:
         module.fail_json(msg='Value is required with state="present".')
 
     kwargs = {'host': target_host,
