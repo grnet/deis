@@ -1,5 +1,5 @@
 - include_vars: "../../../../{{ lookup('env', 'CONF') or 'conf-dev.yml' }}"
-  tags: [deis-pre, deis-setup, deis-conf]
+  tags: [deis-pre, deis-setup, deis-conf, deis-firewall]
 
 - debug: var="Install ifalos @ {{ deis_domain }}"
   run_once: true
@@ -228,10 +228,14 @@
   register: deisctl_list
   run_once: true
   delegate_to: "{{master_node}}"
-  tags: deis-setup
+  tags: 
+    - deis-setup
+    - deis-firewall
 
 - set_fact: deis_installed="{{deisctl_list.stdout|int > 0}}"
-  tags: deis-setup
+  tags: 
+    - deis-setup
+    - deis-firewall
 
 - name: "[install] Install platform"
   local_action: shell DEISCTL_TUNNEL={{ deis_tunnel }} deisctl install platform > install-platform.log
@@ -255,6 +259,34 @@
   file: path=/home/core/ifalos/units state=directory owner=core
   tags: deis-setup
 
+- name: "[conf] Get logspout ip address"
+  shell: docker inspect deis-logspout | grep IPAddress\" | cut -d '"' -f 4
+  sudo: true
+  register: logspout_ip
+  ignore_errors: true
+  tags: 
+    - deis-setup
+    - deis-firewall
+
+- set_fact: logspoutip="{{logspout_ip.stdout or False}}"
+  tags: 
+    - deis-setup
+    - deis-firewall
+
+- name: "[conf] Get publisher ip address"
+  shell: docker inspect deis-publisher | grep IPAddress\" | cut -d '"' -f 4
+  sudo: true
+  register: publisher_ip
+  ignore_errors: true
+  tags: 
+    - deis-setup
+    - deis-firewall
+
+- set_fact: publisherip="{{publisher_ip.stdout or False}}"
+  tags: 
+    - deis-setup
+    - deis-firewall
+
 - name: "[conf] Update firewall script"
   sudo: true
   template: 
@@ -264,7 +296,9 @@
     mode: o+rwx,a+r
   register: firewall
   when: deis_installed
-  tags: deis-setup
+  tags: 
+    - deis-setup
+    - deis-firewall
 
 - name: "[conf] Place log forwarder service file"
   sudo: true
@@ -313,4 +347,6 @@
   sudo: true
   shell: . /home/core/ifalos/set-firewall.sh
   when: firewall.changed or deis_force_apply_firewall and deis_installed
-  tags: deis-setup
+  tags: 
+    - deis-setup
+    - deis-firewall

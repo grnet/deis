@@ -26,6 +26,14 @@ template=$(cat <<EOF
 :Firewall-INPUT - [0:0]
 -A INPUT -j Firewall-INPUT
 -A FORWARD -j Firewall-INPUT
+
+{% if publisherip and logspoutip %}
+-I FORWARD 1 -i docker0 -o eth2 -s {{ publisherip }} -j ACCEPT
+-I FORWARD 2 -i docker0 -o eth2 -s {{ logspoutip }} -j ACCEPT
+-I FORWARD 3 -i docker0 -o eth2 -p tcp --dport 4001:4001 -j REJECT
+-I FORWARD 4 -i docker0 -o eth2 -p tcp --dport 5000:5000 -j REJECT
+{% endif %}
+
 -A Firewall-INPUT -i lo -j ACCEPT
 -A Firewall-INPUT -p icmp --icmp-type echo-reply -j ACCEPT
 -A Firewall-INPUT -p icmp --icmp-type destination-unreachable -j ACCEPT

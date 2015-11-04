@@ -2,8 +2,9 @@
   roles:
       - grnet.deis.common
       - grnet.deis
+      - grnet.deis.datanode
 
 - hosts: controlplane
   roles:
       - grnet.deis.common
-      - grnet.ifalos.control
+      - grnet.deis.controlnode
