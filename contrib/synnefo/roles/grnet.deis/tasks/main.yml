@@ -1,4 +1,4 @@
-- include_vars: "../../../../{{ lookup('env', 'CONF') or 'conf-dev.yml' }}"
+- include_vars: "../../../../{{ lookup('env', 'CONF') or 'conf.yml' }}"
   tags: [deis-pre, deis-setup, deis-conf, deis-firewall]
 
 - debug: var="Install ifalos @ {{ deis_domain }}"
