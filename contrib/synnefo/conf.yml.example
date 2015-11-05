@@ -6,6 +6,11 @@ deis_etcd_host: 10.12.21.1
 deis_log_backend: false
 deis_router_firewall: true
 deis_log_backend: false
+deis_ssl_key: <path-to-ssl-key>
+deis_ssl_cert: <path-to-ssl-cert>
+deis_astakos_auth_url: https://accounts.synnefo.org/identity/v2.0
+deis_astakos_auth_access_groups: "paas-users,paas-prime-users"
+deis_network_id: paas
 
 # https://docs.ansible.com/ansible/faq.html#how-do-i-generate-crypted-passwords-for-the-user-module
 deis_core_password: <password>

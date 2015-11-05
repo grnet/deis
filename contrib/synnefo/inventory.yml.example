@@ -51,7 +51,7 @@ group_vars:
 
 provision:
     networks:
-        deis:
+        paas:
             type: MAC_FILTERED
             cidr: 10.12.50.0/24
 
@@ -60,29 +60,29 @@ provision:
             <<: *control_machine
             floating_ips: [auto]
             networks:
-                deis:
+                paas:
                     ip: 10.12.50.1
         deis-master-node2:
             <<: *control_machine
             floating_ips: [auto]
             networks:
-                deis:
+                paas:
                     ip: 10.12.50.2
         deis-master-node3:
             <<: *control_machine
             floating_ips: [auto]
             networks:
-                deis:
+                paas:
                     ip: 10.12.50.3
         deis-master-node4:
             <<: *control_machine
             floating_ips: [auto]
             networks:
-                deis:
+                paas:
                     ip: 10.12.50.4
         deis-master-node5:
             <<: *control_machine
             floating_ips: [auto]
             networks:
-                deis:
+                paas:
                     ip: 10.12.50.5
