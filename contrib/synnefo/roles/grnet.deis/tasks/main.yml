@@ -308,11 +308,12 @@
     dest: /home/core/ifalos/units/
     owner: core
     mode: u+rw
+  when: deis_log_backend
   tags: deis-setup
 
 - shell: sudo fleetctl stop log-forwader; sudo fleetctl destroy log-forwarder
   run_once: true
-  when: logging_service_file.changed
+  when: deis_log_backend and logging_service_file.changed
   ignore_errors: true
   tags: deis-setup
 
@@ -321,26 +322,28 @@
   register: log_forwarder_loaded
   ignore_errors: true
   failed_when: '"does not exist" in log_forwarder_loaded.stderr'
+  when: deis_log_backend
   tags: deis-setup
 
 - command: sudo fleetctl load /home/core/ifalos/units/log-forwarder
   run_once: true
-  when: log_forwarder_loaded.failed
+  when: deis_log_backend and log_forwarder_loaded.failed
   tags: deis-setup
 
 - pause: seconds=3
-  when: log_forwarder_loaded.failed
+  when: deis_log_backend and log_forwarder_loaded.failed
   tags: deis-setup
 
 - shell: sudo fleetctl list-units | grep -e 'log-forwarder.*\sactive'
   run_once: true
   register: log_forwarder_active
+  when: deis_log_backend
   ignore_errors: true
   tags: deis-setup
 
 - command: sudo fleetctl start log-forwarder
   run_once: true
-  when: not log_forwarder_active.stdout
+  when: deis_log_backend and not log_forwarder_active.stdout
   tags: deis-setup
 
 - name: "[conf] Apply firewall rules"
