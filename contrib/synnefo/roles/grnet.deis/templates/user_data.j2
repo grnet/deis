@@ -144,9 +144,7 @@ coreos:
       Description=etcd debugging service
 
       [Service]
-      ExecStartPre=/usr/bin/curl -sSL -o /opt/bin/jq http://stedolan.github.io/jq/download/linux64/jq
-      ExecStartPre=/usr/bin/chmod +x /opt/bin/jq
-      ExecStart=/usr/bin/bash -c "while true; do curl -sL http://127.0.0.1:4001/v2/stats/self | /opt/bin/jq . ; sleep 1 ; done"
+      ExecStart=/usr/bin/bash -c "while true; do curl -sL http://127.0.0.1:4001/v2/stats/self | jq . ; sleep 1 ; done"
   - name: increase-nf_conntrack-connections.service
     command: start
     content: |
@@ -167,7 +165,7 @@ write_files:
   - path: /etc/deis-release
     owner: root
     content: |
-      DEIS_RELEASE=v1.11.1
+      DEIS_RELEASE=v1.12.0
   - path: /etc/motd
     content: " \e[31m* *    \e[34m*   \e[32m*****    \e[39mddddd   eeeeeee iiiiiii   ssss\n\e[31m*   *  \e[34m* *  \e[32m*   *     \e[39md   d   e    e    i     s    s\n \e[31m* *  \e[34m***** \e[32m*****     \e[39md    d  e         i    s\n\e[32m*****  \e[31m* *    \e[34m*       \e[39md     d e         i     s\n\e[32m*   * \e[31m*   *  \e[34m* *      \e[39md     d eee       i      sss\n\e[32m*****  \e[31m* *  \e[34m*****     \e[39md     d e         i         s\n  \e[34m*   \e[32m*****  \e[31m* *      \e[39md    d  e         i          s\n \e[34m* *  \e[32m*   * \e[31m*   *     \e[39md   d   e    e    i    s    s\n\e[34m***** \e[32m*****  \e[31m* *     \e[39mddddd   eeeeeee iiiiiii  ssss\n\n\e[39mWelcome to Deis\t\t\tPowered by Core\e[38;5;45mO\e[38;5;206mS\e[39m\n"
   - path: /etc/profile.d/nse-function.sh
