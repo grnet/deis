@@ -1,6 +1,9 @@
-******
-Ifalos
-******
+************
+Deis Synnefo
+************
 
-Ifalos is a set of tools to facilitate the provision of a deis deployment on
-top of Synnefo IaaS.
+This dir contains a set of tools to facilitate the deployment and management of
+Deis PaaS platform over Synnefo IaaS. 
+
+For more information on how to use these tools read  `docs/install.rst` and
+`docs/admin.rst`.
