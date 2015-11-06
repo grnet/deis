@@ -1,5 +1,5 @@
 deis_version: 1.12.0
-coreos_version: 766.4.0
+coreos_version: 766.5.0
 deis_userdata_tmpdir: /var/lib/coreos-install-tmp
 deis_userdata_dir: /var/lib/coreos-install
 deis_userdata_filename: user_data
