@@ -9,6 +9,7 @@ deis_enable_web_ui: true
 deis_placement_options: true
 deis_reboot_delay: 45
 deis_controller_image: vinilios/ifalos-controller
+deis_router_image: vinilios/ifalos-router
 deis_controller_scheduler: k8s
 deis_log_backend: false
 deis_log_drain: false
