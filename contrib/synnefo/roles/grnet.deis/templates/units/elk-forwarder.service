@@ -1,0 +1,15 @@
+[Unit]
+Description=ELK journald forwarder
+Requires=systemd-journald.service
+After=systemd-journald.service
+
+[Service]
+ExecStart=/bin/sh -c "/usr/bin/journalctl -fo json | ncat `etcdctl get /elk/host` 5511"
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
+[X-Fleet]
+Global=true

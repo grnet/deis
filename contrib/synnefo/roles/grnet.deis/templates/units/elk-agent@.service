@@ -1,0 +1,18 @@
+[Unit]
+Description=ELK agent
+Requires=elk@%i.service
+BindsTo=elk@%i.service
+After=elk@%i.service
+
+[Service]
+ExecStart=/usr/bin/docker exec elk /opt/logstash/bin/logstash -e 'input { tcp { port => 5511 codec => json } } output { elasticsearch { hosts => ["localhost"] } }'
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
+[X-Fleet]
+MachineOf=elk@%i.service
+Conflicts=elk-agent@*.service
+MachineMetadata="controlPlane=true"

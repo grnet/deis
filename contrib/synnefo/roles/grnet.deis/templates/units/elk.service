@@ -1,0 +1,19 @@
+[Unit]
+Description=ELK
+Requires=docker.socket
+After=docker.socket
+
+[Service]
+ExecStartPre=/bin/sh -c "docker history sebp/elk >/dev/null 2>&1 || docker pull sebp/elk"
+ExecStartPre=/bin/sh -c "docker inspect elk >/dev/null 2>&1 && docker rm -f elk || true"
+ExecStart=/usr/bin/docker run -p 5611:5601 -p 9211:9200 -p 5011:5000 -p 5511:5511 -it --name elk sebp/elk
+ExecStopPost=-/usr/bin/docker rm -f elk
+ExecStartPost=/usr/bin/docker exec -t elk /opt/logstash/bin/logstash -e 'input { tcp { port => 5511 codec => json } } output { elasticsearch { hosts => ["localhost"] } }'
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
+[X-Fleet]
+Global=true

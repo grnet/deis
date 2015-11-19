@@ -1,0 +1,22 @@
+[Unit]
+Description=ELK
+Requires=docker.socket
+After=docker.socket
+
+[Service]
+EnvironmentFile=/etc/environment
+ExecStartPre=/bin/sh -c "etcdctl set /elk/host $COREOS_PRIVATE_IPV4"
+ExecStartPre=/bin/sh -c "test -d /var/lib/deis/store/elk || mkdir /var/lib/deis/store/elk"
+ExecStartPre=/bin/sh -c "docker history sebp/elk >/dev/null 2>&1 || docker pull sebp/elk"
+ExecStartPre=-/bin/sh -c "docker inspect elk >/dev/null 2>&1 && docker rm -f elk || true"
+ExecStart=/usr/bin/docker run -p 5611:5601 -p 9211:9200 -p 5011:5000 -p 5511:5511 -v /var/lib/deis/store/elk:/var/lib/elasticsearch --name elk sebp/elk
+ExecStopPost=-/usr/bin/docker rm -f elk
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
+[X-Fleet]
+Conflicts=elk@*.service
+MachineMetadata="controlPlane=true"
