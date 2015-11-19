@@ -1,9 +1,14 @@
+- set_fact: master_node="{{ groups.nodes.0 }}"
+  tags: 
+    - deis-control
+
 - name: "[control] Download kubectl"
   get_url:
     url: https://storage.googleapis.com/kubernetes-release/release/v1.0.1/bin/linux/amd64/kubectl
     dest: /home/core/bin/kubectl_
     mode: 0555
-  tags: deis-control
+  tags:
+    - deis-control
 
 - name: "[control] Setup kubectl wrapper"
   copy:
@@ -11,16 +16,19 @@
     dest: /home/core/bin/kubectl
     owner: core
     mode: 0555
-  tags: deis-control
+  tags:
+    - deis-control
 
 - stat: path=/home/core/.bashrc
   register: bashrc_stat
-  tags: deis-control
+  tags:
+    - deis-control
 
 - command: unlink /home/core/.bashrc
   when: not bashrc_stat.stat.exists or bashrc_stat.stat.islnk
   ignore_errors: true
-  tags: deis-control
+  tags:
+    - deis-control
 
 - name: "[control] Custom .bashrc for core user"
   copy:
