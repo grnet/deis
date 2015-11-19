@@ -39,19 +39,7 @@
 - name: "[pre] Update CoreOS"
   shell: update_engine_client -update
   sudo: true
-  when: deis_allow_reboot and not coreos_version_grep.stdout
-  tags: 
-    - deis-pre
-    
-- name: "[pre] Fix machineid"
-  sudo: true
-  template: 
-    src: machine-id.j2 
-    dest: "/etc/machine-id"
-    owner: root
-    mode: a+r,a-w
-  register: machineid
-  when: deis_allow_reboot
+  when: deis_allow_reboot and not coreos_version_grep.stdout and deis_allow_upgrade
   tags: 
     - deis-pre
 
@@ -60,12 +48,12 @@
   shell: /bin/sh -c 'sleep 1 && reboot now' &
   async: 1
   poll: 0
-  when: deis_allow_reboot and (machineid.changed or not coreos_version_grep.stdout)
+  when: deis_allow_reboot and not coreos_version_grep.stdout
   tags: 
     - deis-pre
 
 - local_action: wait_for host={{ inventory_hostname }} delay={{ deis_reboot_delay }} port=22
-  when: deis_allow_reboot and (machineid.changed or not coreos_version_grep.stdout)
+  when: deis_allow_reboot and not coreos_version_grep.stdout
   tags: 
     - deis-pre
 
