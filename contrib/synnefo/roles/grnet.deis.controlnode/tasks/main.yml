@@ -28,10 +28,47 @@
     dest: /home/core/.bashrc
     owner: core
     mode: 0777
-  tags: deis-control
+  tags:
+    - deis-control
 
 - name: "[control] Set ~/bin to PATH"
   lineinfile:
     dest: /home/core/.bashrc
     line: "export PATH=$PATH:/home/core/bin/"
-  tags: deis-control
+  tags:
+    - deis-control
+
+- name: "[control] Clone kubernetes repo"
+  git:
+    repo: https://github.com/kubernetes/kubernetes
+    dest: /home/core/ifalos/kubernetes
+    version: master
+  tags:
+    - deis-control
+
+- set_fact: kubectl_bin=/home/core/bin/kubectl
+  tags:
+    - deis-control
+
+- name: "[control] Check kubernetes dashboard"
+  shell: "{{kubectl_bin}} get rc/kube-ui-v3 --namespace=kube-system"
+  register: kube_dash_check
+  ignore_errors: true
+  tags:
+    - deis-control
+
+- set_fact: kube_dash_installed={{ kube_dash_check.rc == 0 }}
+  tags:
+    - deis-control
+
+- name: "[control] Install kube dashboard rc"
+  when: not kube_dash_installed and deis_kube_ui_enabled
+  shell: "{{kubectl_bin}} create -f ifalos/kubernetes/cluster/addons/kube-ui/kube-ui-rc.yaml --namespace=kube-system"
+  tags:
+    - deis-control
+
+- name: "[control] Install kube dashboard service"
+  when: not kube_dash_installed and deis_kube_ui_enabled
+  shell: "{{kubectl_bin}} create -f ifalos/kubernetes/cluster/addons/kube-ui/kube-ui-svc.yaml --namespace=kube-system"
+  tags:
+    - deis-control

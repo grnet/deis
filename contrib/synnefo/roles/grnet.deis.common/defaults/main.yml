@@ -25,3 +25,6 @@ deis_ssl_cert: ssl/deis.chain.pem
 
 deis_astakos_auth_url: ""
 deis_astakos_auth_access_groups: ""
+
+deis_cadvisor_enabled: false
+deis_kube_ui_enabled: false
