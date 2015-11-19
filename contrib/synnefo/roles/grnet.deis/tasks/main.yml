@@ -442,3 +442,46 @@
   tags:
     - deis-setup
     - deis-logging-setup
+
+- name: "[conf] Place cadvisor service file"
+  sudo: true
+  register: cadvisor_service_file
+  template: 
+    src: units/cadvisor.service
+    dest: /home/core/ifalos/units/
+    owner: core
+    mode: u+rw
+  tags:
+    - deis-setup
+    - deis-cadvisor-setup
+
+- command: sudo fleetctl status cadvisor
+  run_once: true
+  register: cadvisor_check
+  ignore_errors: true
+  failed_when: '"does not exist" in cadvisor_check.stderr'
+  tags:
+    - deis-setup
+    - deis-cadvisor-setup
+
+- command: sudo fleetctl load /home/core/ifalos/units/cadvisor
+  run_once: true
+  when: cadvisor_check.failed
+  tags:
+    - deis-setup
+    - deis-cadvisor-setup
+
+- shell: sudo fleetctl list-units | grep -e 'cadvisor.*\sactive'
+  run_once: true
+  register: cadvisor_active
+  ignore_errors: true
+  tags:
+    - deis-setup
+    - deis-cadvisor-setup
+
+- command: sudo fleetctl start cadvisor
+  run_once: true
+  when: not cadvisor_active.stdout and deis_cadvisor_enabled
+  tags:
+    - deis-setup
+    - deis-cadvisor-setup
