@@ -64,7 +64,8 @@ class PGService(Service):
             'PG_DATABASE_USER',
             'PG_DATABASE_PASSWORD',
             'PG_DATABASE_HOST',
-            'PG_DATABASE_PORT']
+            'PG_DATABASE_PORT',
+            'DATABASE_URL']
 
     def setup(self):
         app_id = str(self.config.app.id)
@@ -80,12 +81,14 @@ class PGService(Service):
             port = self.client.get('/deis/database/port').value
             host = self.client.get('/deis/database/host').value
 
+        db_url = "psql://%s:%s@%s:%s/%s" % (user, password, host, port, db)
         return {
             'PG_DATABASE_PORT': port,
             'PG_DATABASE_HOST': host,
             'PG_DATABASE_NAME': db,
             'PG_DATABASE_USER': user,
-            'PG_DATABASE_PASSWORD': password
+            'PG_DATABASE_PASSWORD': password,
+            'DATABASE_URL': db_url
         }
 
 
